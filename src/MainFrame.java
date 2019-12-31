@@ -6,20 +6,20 @@ import java.awt.*;
 public class MainFrame extends JFrame {
 
     JLabel billToLabel, nameLabel, birthLabel, genderLabel, passportNumLabel, dateLabel;
-    JTextField billToText, nameText, birthText, passportText;
+    JTextField billToText, nameText, birthText, passportText, dateText;
     JComboBox genderCombo;
+    JButton nextBtn, clearBtn;
 
     public MainFrame(){
         super("Invoice");
 
-        setSize(500,500);
-        setMaximumSize(new Dimension(650, 800));
-        setMinimumSize(new Dimension(350, 450));
+        setSize(550, 600);
         setLocationRelativeTo(null); // Set frame to center
         setLayout(new BorderLayout());
 
         addWidgets(); //Adds all widgets inside JFrame
 
+        pack();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
@@ -30,15 +30,15 @@ public class MainFrame extends JFrame {
          *   __________________________________________
          *  |   Container                               |
          *  |    ___________________________________    |
-         *  |   |   jpContainer                     |   |
+         *  |   |   innerContainer                  |   |
          *  |   |    ___________________________    |   |
-         *  |   |   |   jp                      |   |   |
+         *  |   |   |   widgetPanel             |   |   |
          *  |   |   |                           |   |   |
          *  |   |   |                           |   |   |
          *  |   |   |                           |   |   |
          *  |   |   |___________________________|   |   |
          *  |   |    ___________________________    |   |
-         *  |   |   |   jpBirthAndGender        |   |   |
+         *  |   |   |                           |   |   |
          *  |   |   |                           |   |   |
          *  |   |   |                           |   |   |
          *  |   |   |                           |   |   |
@@ -49,75 +49,153 @@ public class MainFrame extends JFrame {
          *  |___________________________________________|
          */
 
-        //Top level JPanel
+        //JPanels:
+        //Main Container
         JPanel container = new JPanel(new GridLayout(0, 1));
         Border padding = BorderFactory.createEmptyBorder(10, 20, 10, 20); //Padding
         container.setBorder(padding);
 
-        //jp Container
-        JPanel jpContainer = new JPanel(new GridLayout(0, 1));
-        jpContainer.setBorder(BorderFactory.createTitledBorder("CUSTOMER INFORMATION")); //Legend (Border with title)
+        //innerContainer JPanel
+        JPanel innerContainer = new JPanel(new GridLayout(1, 1));
+        innerContainer.setBorder(BorderFactory.createTitledBorder("CUSTOMER INFORMATION")); //Legend (Border with title)
 
-        //Textfields and etc for Customer Info
-        JPanel jp = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+        //widgetPanel - All widgets will go inside this JPanel
+        JPanel widgetPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints(); //GridBagConstraints required for GridBagLayout
 
-        //Default Settings
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 10, 5, 10); //Padding
-
-        //Date label
+        //Initialize widgets:
+        //Labels:
         dateLabel = new JLabel("Date:");
-        gbc.anchor = GridBagConstraints.LINE_START; //Align text left
-        gbc.gridwidth = 1;
+        billToLabel = new JLabel("Bill To:");
+        nameLabel = new JLabel("Name:");
+        birthLabel = new JLabel("Date of Birth:");
+        genderLabel = new JLabel("Gender:");
+        passportNumLabel = new JLabel("Passport No:");
+        //TextFields
+        dateText = new JTextField(12);
+        billToText = new JTextField(12);
+        nameText = new JTextField(12);
+        birthText = new JTextField(12);
+        passportText = new JTextField(12);
+        //JButton
+        nextBtn = new JButton("Next");
+        clearBtn = new JButton("Clear");
+
+        //JComboBox
+        String[] genders = {"", "Male", "Female", "Other"};
+        genderCombo = new JComboBox(genders);
+
+        //GridBagLayout init:
+
+        ////////// FIRST ROW //////////
         gbc.gridx = 0;
         gbc.gridy = 0;
-        jp.add(dateLabel, gbc);
-        //Date text
-
-
-        //Bill to: Label
-        billToLabel = new JLabel("Bill to:");
         gbc.fill = GridBagConstraints.NONE;
-        gbc.anchor = GridBagConstraints.LINE_START; //Align text left
-        gbc.insets = new Insets(5, 10, 5, 0);
-        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(10, 8, 8, 0);
+        gbc.weightx = 0.1;
+        gbc.weighty = 0.1;
+        widgetPanel.add(dateLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        widgetPanel.add(dateText, gbc);
+
+        ////////// SECOND ROW //////////
         gbc.gridx = 0;
         gbc.gridy = 1;
-        jp.add(billToLabel, gbc);
-        //Bill to: Text
-        billToText = new JTextField();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 0, 5, 10);
-        gbc.weightx = 1;
-        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(0, 8, 8, 0);
+        gbc.weightx = 0.1;
+        gbc.weighty = 0.1;
+        widgetPanel.add(billToLabel, gbc);
+
         gbc.gridx = 1;
         gbc.gridy = 1;
-        jp.add(billToText, gbc);
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        widgetPanel.add(billToText, gbc);
 
-        //Name: Label
-        nameLabel = new JLabel("Name:");
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.anchor = GridBagConstraints.LINE_START; //Align text left
-        gbc.insets = new Insets(5, 10, 5, 0);
-        gbc.gridwidth = 1;
-        gbc.weightx = 0;
+        ////////// THIRD ROW //////////
         gbc.gridx = 0;
         gbc.gridy = 2;
-        jp.add(nameLabel, gbc);
-        //Name: Text
-        nameText = new JTextField();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 0, 5, 10);
-        gbc.weightx = 1;
-        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.weightx = 0.1;
+        widgetPanel.add(nameLabel, gbc);
+
         gbc.gridx = 1;
         gbc.gridy = 2;
-        jp.add(nameText, gbc);
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        widgetPanel.add(nameText, gbc);
 
-        jpContainer.add(jp); //Add Customer info widgets JPanel to container JPanel
+        gbc.gridx = 2;
+        gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(0, 8, 8, 8);
+        gbc.weightx = 0.1;
+        widgetPanel.add(birthLabel, gbc);
 
-        container.add(jpContainer); //jpCOntainer --> container
+        gbc.gridx = 3;
+        gbc.gridy = 2;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        widgetPanel.add(birthText, gbc);
+
+        ////////// FOURTH ROW //////////
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(0, 8, 8, 0);
+        gbc.weightx = 0.1;
+        widgetPanel.add(genderLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        widgetPanel.add(genderCombo, gbc);
+
+        ////////// FIFTH ROW //////////
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.weightx = 0.1;
+        widgetPanel.add(passportNumLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 4;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        widgetPanel.add(passportText, gbc);
+
+        ////////// SUBMIT / CLEAR //////////
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.weighty = 0;
+        gbc.weightx = 0.1;
+        gbc.insets = new Insets(30, 0, 8, 0);
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        widgetPanel.add(clearBtn, gbc);
+
+        gbc.gridx = 3;
+        widgetPanel.add(nextBtn, gbc);
+
+        innerContainer.add(widgetPanel);
+
+        container.add(innerContainer);
 
         add(container, BorderLayout.PAGE_START); //Add container to JFrame
     }

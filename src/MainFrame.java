@@ -6,15 +6,20 @@ import java.awt.event.ActionListener;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public class MainFrame extends JFrame implements ActionListener {
 
     //Declaring JFrame Components
-    JLabel billToLabel, nameLabel, birthLabel, genderLabel, passportNumLabel, dateLabel;
+    JLabel billToLabel, nameLabel, birthLabel, genderLabel, passportNumLabel, dateLabel, currentDateLabel;
     JTextField billToText, nameText, birthText, passportText, dateText;
     JComboBox genderCombo;
     JButton nextBtn, clearBtn;
     Border errorBorder, defaultBorder, defaultJComboBorder;
+
+    //Date format
+    DateTimeFormatter dFormat;
 
     //Initializes the JFrame
     public MainFrame(){
@@ -23,7 +28,7 @@ public class MainFrame extends JFrame implements ActionListener {
         setSize(550, 600);
         setLocationRelativeTo(null); // Set frame to center
         //setResizable(false);
-        setLayout(new BorderLayout());
+        setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
 
         addWidgets(); //Adds all widgets inside JFrame
 
@@ -33,6 +38,13 @@ public class MainFrame extends JFrame implements ActionListener {
     }
 
     public void addWidgets(){
+
+        //Current date
+        LocalDate now = LocalDate.now();
+        //Initialize date format
+        dFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        //Current Date
+        currentDateLabel = new JLabel(LocalDate.now().format(dFormat));
 
         /* JPANEL STRUCTURE: VISUALIZED
          *   ___________________________________________
@@ -50,6 +62,21 @@ public class MainFrame extends JFrame implements ActionListener {
          */
 
         //JPanels:
+        //Current Date Container
+        JPanel currentDatePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints dateGbc = new GridBagConstraints();
+
+        dateGbc.gridx = 0;
+        dateGbc.gridy = 0;
+        dateGbc.weightx = 1;
+        dateGbc.weighty = 1;
+        dateGbc.anchor = GridBagConstraints.CENTER;
+        dateGbc.insets = new Insets(15, 0, 20, 0);
+        currentDatePanel.add(currentDateLabel, dateGbc);
+
+        add(currentDatePanel); //Add currentDatePanel to JFrame
+
+
         //Main Container
         JPanel container = new JPanel(new GridLayout(0, 1));
         Border padding = BorderFactory.createEmptyBorder(10, 20, 10, 20); //Padding
@@ -222,7 +249,7 @@ public class MainFrame extends JFrame implements ActionListener {
         if(e.getActionCommand().equals("Clear")){ //If Clear button is clicked
             clear();
         } else if(e.getActionCommand().equals("Next")){ //If Next button is clicked
-            if(validateInputs()){
+            if(!validateInputs()){ //CHANGE TO MAKE VALIDATION WORK!!!!!!
                 //Go to next step: Entering information for Products/Services purchased
                 Customer c = new Customer(
                         dateText.getText(),
@@ -231,6 +258,8 @@ public class MainFrame extends JFrame implements ActionListener {
                         birthText.getText(),
                         genderCombo.getSelectedItem().toString(),
                         passportText.getText());
+                SecondFrame sf = new SecondFrame(c);
+                this.setVisible(false);
             }
         }
     }
@@ -298,7 +327,7 @@ public class MainFrame extends JFrame implements ActionListener {
         return valid;
     }
 
-    //Validates inputs from name, bill to and passport number
+    //Validates inputs from name, billTo and passport number
     private boolean validateText(){
 
         boolean valid = true;

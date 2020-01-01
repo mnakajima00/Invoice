@@ -1,20 +1,28 @@
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
-public class MainFrame extends JFrame {
+public class MainFrame extends JFrame implements ActionListener {
 
+    //Declaring JFrame Components
     JLabel billToLabel, nameLabel, birthLabel, genderLabel, passportNumLabel, dateLabel;
     JTextField billToText, nameText, birthText, passportText, dateText;
     JComboBox genderCombo;
     JButton nextBtn, clearBtn;
+    Border errorBorder, defaultBorder, defaultJComboBorder;
 
+    //Initializes the JFrame
     public MainFrame(){
         super("Invoice");
 
         setSize(550, 600);
         setLocationRelativeTo(null); // Set frame to center
+        //setResizable(false);
         setLayout(new BorderLayout());
 
         addWidgets(); //Adds all widgets inside JFrame
@@ -27,8 +35,8 @@ public class MainFrame extends JFrame {
     public void addWidgets(){
 
         /* JPANEL STRUCTURE: VISUALIZED
-         *   __________________________________________
-         *  |   Container                               |
+         *   ___________________________________________
+         *  |   container                               |
          *  |    ___________________________________    |
          *  |   |   innerContainer                  |   |
          *  |   |    ___________________________    |   |
@@ -72,7 +80,9 @@ public class MainFrame extends JFrame {
         //JButton
         nextBtn = new JButton("Next");
         clearBtn = new JButton("Clear");
-
+        //JButton ActionListener
+        nextBtn.addActionListener(this);
+        clearBtn.addActionListener(this);
         //JComboBox
         String[] genders = {"", "Male", "Female", "Other"};
         genderCombo = new JComboBox(genders);
@@ -172,12 +182,24 @@ public class MainFrame extends JFrame {
         gbc.anchor = GridBagConstraints.LINE_START;
         widgetPanel.add(passportText, gbc);
 
-        ////////// SUBMIT / CLEAR //////////
+        ////////// SEPARATOR //////////
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.weightx = 1;
         gbc.gridx = 0;
         gbc.gridy = 5;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.insets = new Insets(10, 8, 10, 8);
+        widgetPanel.add(new JSeparator(JSeparator.HORIZONTAL),gbc);
+
+
+        ////////// SUBMIT / CLEAR //////////
+        gbc.gridx = 0;
+        gbc.gridy = 6;
         gbc.weighty = 0;
         gbc.weightx = 0.1;
-        gbc.insets = new Insets(30, 0, 8, 0);
+        gbc.gridwidth = 1;
+        gbc.insets = new Insets(0, 0, 8, 0);
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.LINE_END;
         widgetPanel.add(clearBtn, gbc);
@@ -185,11 +207,142 @@ public class MainFrame extends JFrame {
         gbc.gridx = 3;
         widgetPanel.add(nextBtn, gbc);
 
+        //Adding JPanels to parent JPanel
         innerContainer.add(widgetPanel);
 
         container.add(innerContainer);
 
-        add(container, BorderLayout.PAGE_START); //Add container to JFrame
+        //Add container to JFrame
+        add(container, BorderLayout.PAGE_START);
     }
 
+    //This method gets called when either "Clear" or "Next" button is clicked
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if(e.getActionCommand().equals("Clear")){ //If Clear button is clicked
+            clear();
+        } else if(e.getActionCommand().equals("Next")){ //If Next button is clicked
+            if(validateInputs()){
+                //Go to next step: Entering information for Products/Services purchased
+                Customer c = new Customer(
+                        dateText.getText(),
+                        billToText.getText(),
+                        nameText.getText(),
+                        birthText.getText(),
+                        genderCombo.getSelectedItem().toString(),
+                        passportText.getText());
+            }
+        }
+    }
+
+    //Clears entered values and resets borders to default
+    private void clear(){
+        dateText.setText("");
+        dateText.setBorder(defaultBorder);
+        billToText.setText("");
+        billToText.setBorder(defaultBorder);
+        nameText.setText("");
+        nameText.setBorder(defaultBorder);
+        birthText.setText("");
+        birthText.setBorder(defaultBorder);
+        genderCombo.setSelectedIndex(0);
+        genderCombo.setBorder(defaultJComboBorder);
+        passportText.setText("");
+        passportText.setBorder(defaultBorder);
+    }
+
+    //Makes sure values entered are valid
+    private boolean validateInputs() {
+        //Custom borders for invalid input values
+        errorBorder = BorderFactory.createLineBorder(Color.RED, 1);
+        defaultBorder = new JTextField().getBorder();
+        defaultJComboBorder = new JComboBox().getBorder();
+
+        boolean valid = true;
+
+        if(!(validateDate() && validateText() && validateGender())){
+            valid = false;
+        }
+
+        return valid;
+
+    }
+
+    //Validates inputs from date and date of birth
+    private boolean validateDate(){
+        boolean valid = true;
+        DateFormat dFormat = new SimpleDateFormat("dd/MM/yyyy");
+        //Input to be parsed should strictly follow the defined date format above
+        dFormat.setLenient(false);
+
+        try {
+            dFormat.parse(dateText.getText());
+            dateText.setBorder(defaultBorder);
+        } catch(ParseException e ){
+            dateText.setBorder(errorBorder);
+            valid = false;
+        }
+
+        try {
+            dFormat.parse(birthText.getText());
+            birthText.setBorder(defaultBorder);
+        } catch (ParseException e){
+            birthText.setBorder(errorBorder);
+            valid = false;
+        }
+
+        if(!valid) {
+            JOptionPane.showMessageDialog(this, "The date should be in the format 'dd/MM/yyyy'");
+        }
+
+        return valid;
+    }
+
+    //Validates inputs from name, bill to and passport number
+    private boolean validateText(){
+
+        boolean valid = true;
+
+        if(billToText.getText().isEmpty()){
+            valid = false;
+            billToText.setBorder(errorBorder);
+        } else {
+            billToText.setBorder(defaultBorder);
+        }
+
+        if(nameText.getText().isEmpty()){
+            valid = false;
+            nameText.setBorder(errorBorder);
+        } else {
+            nameText.setBorder(defaultBorder);
+        }
+
+        if(passportText.getText().isEmpty()){
+            valid = false;
+            passportText.setBorder(errorBorder);
+        } else {
+            passportText.setBorder(defaultBorder);
+        }
+
+        if(!valid){
+            JOptionPane.showMessageDialog(this,"Please enter valid text.");
+        }
+
+        return valid;
+    }
+
+    //Validates gender JCombobox
+    private boolean validateGender(){
+        boolean valid = true;
+        if(genderCombo.getSelectedIndex() == 0){
+            valid = false;
+            genderCombo.setBorder(errorBorder);
+            JOptionPane.showMessageDialog(this, "Select a valid gender.");
+            System.out.println("Error at gender selection");
+        } else {
+            genderCombo.setBorder(defaultJComboBorder);
+        }
+
+        return valid;
+    }
 }

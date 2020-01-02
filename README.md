@@ -1,4 +1,4 @@
-# Invoice
-An Invoice Generator - made with Java
+# App
+An App Generator - made with Java
 
 ## Table of Contents

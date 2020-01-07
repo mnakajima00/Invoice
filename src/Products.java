@@ -1,11 +1,12 @@
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class Products {
     //Products
-    private HashMap<String, Double> services;
+    private LinkedHashMap<String, Double> services;
     public int numCounter;
     public Products(){
-        services = new HashMap<String, Double>();
+        services = new LinkedHashMap<>();
 
         //Setting up products
         services.put("Consultation", 30.0);

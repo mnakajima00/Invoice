@@ -1,21 +1,27 @@
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableModel;
+import javax.swing.table.*;
+import javax.swing.text.html.HTMLEditorKit;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-public class SecondFrame extends JFrame implements ActionListener, TableModelListener {
-    //Table variables
-    int rows;
+public class SecondFrame extends JFrame implements ActionListener {
     //Customer class declaration
     Customer c;
     //Products class dec
@@ -26,6 +32,8 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
     JButton addRowsButton,removeRowsButton, addToInvoiceButton;
     JTable table;
     JEditorPane invoicePreviewPane;
+    //JPanel
+    JPanel rightPanel;
 
     DefaultTableModel model;
 
@@ -34,6 +42,7 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
 
         //Initialize Customer Class
         this.c = c;
+        System.out.println(c);
         //Init Products class
         p = new Products();
         //Initialize JFrame
@@ -103,8 +112,7 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
         mainPanel.add(leftPanel);
 
         /////rightPanel/////
-        Border br = BorderFactory.createLineBorder(Color.RED);
-        JPanel rightPanel = new JPanel(new GridBagLayout());
+        rightPanel = new JPanel(new GridBagLayout());
         //rightPanel.setBorder(br);
         buildRightPanel(rightPanel);
         //add rightPanel to mainJPanel
@@ -114,7 +122,8 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
     private void buildLeftPanel(JPanel leftPanel){
         //Initialize components
         date = new JLabel("Date:");
-        dateText = new JTextField(6);
+        dateText = new JTextField(8);
+        dateText.addActionListener(this);
         //JButtons initialization and add action listener
         addRowsButton = new JButton("Add Row");
         addRowsButton.addActionListener(this);
@@ -140,7 +149,7 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
         buildTable(leftPanel, gbc);
 
         /////JButtons - "+", "-" & "Add to Invoice"/////
-        gbc.insets = new Insets(0, 20, 0, 20);
+        gbc.insets = new Insets(0, 10, 0, 10);
         gbc.gridx = 0;
         gbc.gridy = 2;
 
@@ -157,25 +166,53 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
         addToInvoicePanel.add(addToInvoiceButton);
         leftPanel.add(addToInvoicePanel, gbc);
 
-        //JSeparator
+        /////JSeparator/////
         JSeparator js = new JSeparator(JSeparator.HORIZONTAL);
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.weightx = 1;
+        gbc.weightx = 0.1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 20, 0, 20);
         leftPanel.add(js, gbc);
 
-        /////JButton - Add to Invoice/////
-        gbc.gridx = 3;
-        gbc.gridy = 2;
-        gbc.insets = new Insets(0, 20, 0, 20);
-        gbc.fill = GridBagConstraints.NONE;
-
     }
     private void buildTable(JPanel leftPanel, GridBagConstraints gbc){
         //Initialize Default Table Data
-        model = new DefaultTableModel();
+        model = new DefaultTableModel(){
+
+            //Depending on column, change data type
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if(columnIndex == 2){ //Quantity Column as Integer type
+                    return Integer.class;
+                }else if(columnIndex == 3){ //Price column as primitive type Double
+                    return Double.class;
+                } else { //Anything else will be of class String
+                    return String.class;
+
+                }
+            }
+
+            //When a cell is updated, this method ss called
+            @Override
+            public void fireTableCellUpdated(int row, int column) {
+                Object data = model.getValueAt(row, column);
+                //If any cell in column "qty" is changed, assuming that user has entered a valid integer,
+                //calculate the price
+                if(column == 2 && row < 4 && data instanceof Integer && (int)data > 0){
+                    Double price = p.getProductPrice(model.getValueAt(row, 1).toString());
+                    model.setValueAt(
+                            price * (int)data, //Multiply qty with price of the corresponding product/service
+                            row,
+                            column + 1
+                    );
+                } else if(column == 2 && (int)data < 0){
+                    model.setValueAt(0, row, column); //If qty is negative, change to 0
+                    JOptionPane.showMessageDialog(leftPanel, "Enter a positive value.");
+                }
+
+            }
+        };
         String[] col = {
                 "No.",
                 "Description",
@@ -190,20 +227,25 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
         };
 
         model.setDataVector(data, col);
-        //Initialize Table
+        /////Initialize Table/////
         table = new JTable(model);
         table.setMinimumSize(new Dimension(400, 150));
         JScrollPane scrollPane = new JScrollPane(table);
         table.setPreferredScrollableViewportSize(table.getMinimumSize());
         table.setFillsViewportHeight(true);
-        //JTable customization
+        /////JTable customization/////
+        //Center table contents
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
         renderer.setHorizontalAlignment(SwingConstants.CENTER);
-        table.setDefaultRenderer(Object.class, renderer); //Centers all cells
+        table.setDefaultRenderer(String.class, renderer);
+        table.setDefaultRenderer(Integer.class, renderer);
+        table.setDefaultRenderer(Double.class, renderer);
+        //Center table header
         renderer = (DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer(); //Center table headers
         renderer.setHorizontalAlignment(SwingConstants.CENTER);
-        //JTable action
-        table.getModel().addTableModelListener(this);
+        //Table resizing
+        table.getTableHeader().setResizingAllowed(false); //Do not allow resizing of table
+        table.getTableHeader().setReorderingAllowed(false); //Do not allow reordering of columns
         //Adjust Column width
         for(int i = 0; i < table.getColumnCount(); i++){
             TableColumn tc = table.getColumnModel().getColumn(i);
@@ -228,28 +270,85 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
 
     private void buildRightPanel(JPanel rightPanel){
 
-       GridBagConstraints gbc = new GridBagConstraints();
+        GridBagConstraints gbc = new GridBagConstraints();
 
-       ///// EditorPane /////
-       invoicePreviewPane = new JEditorPane();
-       invoicePreviewPane.setEditable(false);
-       JScrollPane jsp = new JScrollPane(invoicePreviewPane);
-       jsp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-       jsp.setMinimumSize(new Dimension(400, 300));
-       jsp.setPreferredSize(jsp.getMinimumSize());
+        ///// EditorPane /////
+        // Initial EditorPane Setup
+        invoicePreviewPane = new JEditorPane();
+        HTMLEditorKit editorKit = new HTMLEditorKit();
+        invoicePreviewPane.setEditorKit(editorKit);
+        invoicePreviewPane.setEditable(false);
+        invoicePreviewPane.setContentType("text/html");
+        JScrollPane jsp = new JScrollPane(invoicePreviewPane);
+        jsp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        jsp.setMinimumSize(new Dimension(400, 300));
+        jsp.setPreferredSize(jsp.getMinimumSize());
 
-       JPanel editorPanel = new JPanel();
-       editorPanel.add(jsp);
+        //GridBagLayout Constraints setup
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = GridBagConstraints.HORIZONTAL;
+        gbc.gridheight = GridBagConstraints.VERTICAL;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-       gbc.gridx = 0;
-       gbc.gridy = 0;
-       gbc.gridwidth = GridBagConstraints.HORIZONTAL;
-       gbc.gridheight = GridBagConstraints.VERTICAL;
-       gbc.anchor = GridBagConstraints.LINE_START;
-       gbc.fill = GridBagConstraints.HORIZONTAL;
+        //Add EditorPane to rightPanel
+        rightPanel.add(jsp, gbc);
 
-       rightPanel.add(editorPanel, gbc);
+    }
 
+    private void setupPreview(JEditorPane invoicePreviewPane){
+        //Get HTML file and show it on JEditorPane
+        File f = new File("src/preview.html");
+        File edited = new File("src/preview_temp.html");
+
+        try {
+            edited.createNewFile(); //Creates a new temp file "preview_temp.html"
+            edited.deleteOnExit(); //Deletes file on exit
+            FileWriter fw = new FileWriter(edited);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(writeToHTMLDoc(f)); //Writes the HTML code to temp HTML file
+            bw.close();
+
+            //JEditorPane's setPage only renders once in itself lifetime
+            //We use the 2 lines of code below as a workaround
+            javax.swing.text.Document doc = invoicePreviewPane.getDocument();
+            doc.putProperty(javax.swing.text.Document.StreamDescriptionProperty, null);
+
+            invoicePreviewPane.setPage(edited.toURI().toURL());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    //This method will write html code to the html file (preview.html)
+    private String writeToHTMLDoc(File f){
+        Document d = null;
+
+        try {
+            d = Jsoup.parse(f, "UTF-8", "");
+            for(Map.Entry<String, HashMap<String, Double>> entry : c.getAllInvoices().entrySet()) {
+                Element e = d.select("div#container").first().appendElement("div")
+                        .addClass("invoice");
+                String date = "Date: " + entry.getKey();
+                e.appendElement("h3").text(date);
+
+                for(Map.Entry<String, Double> map: entry.getValue().entrySet()){
+
+                    String productName = map.getKey();
+                    double price = map.getValue();
+
+                    e.appendElement("p").text(productName + ": " + price + "RM");
+
+                }
+            }
+            //System.out.println(d);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return d.toString();
     }
 
     @Override
@@ -269,33 +368,47 @@ public class SecondFrame extends JFrame implements ActionListener, TableModelLis
                 p.numCounter--;
             }
         } else if(e.getActionCommand().equals("Add to Invoice")){
-            HashMap<String, Double> products = new HashMap<>();
-            for(int i = 0; i < model.getRowCount(); i++) {
-                String desc = (String)model.getValueAt(i, 1);
-                Double price = (Double)model.getValueAt(i, 3);
-                products.put(desc, price);
+            //Validate inputs
+            if(validateInputs()) {
+                LinkedHashMap<String, Double> products = new LinkedHashMap<>();
+                for (int i = 0; i < model.getRowCount(); i++) {
+                    String desc = (String) model.getValueAt(i, 1);
+                    Double price = (Double) model.getValueAt(i, 3);
+                    products.put(desc, price);
+                }
+                //Add invoice to Customer class
+                c.addToInvoiceList(dateText.getText(), products);
+                System.out.println("Number of invoice(s):"+c.getAllInvoices().size());
+                //Show invoice(s) in preview
+                setupPreview(invoicePreviewPane);
             }
-            //Add invoice to Customer class
-            c.addToInvoiceList(dateText.toString(), products);
         }
     }
 
-    @Override
-    public void tableChanged(TableModelEvent e) {
-        int col = e.getColumn();
-        int row = e.getFirstRow();
-        TableModel model = (TableModel)e.getSource();
+    private boolean validateInputs(){
+        boolean valid = true;
 
-        /*
-         * If a qty cell is changed, update the corresponding price cell. But only if the row is < 4 and col == 2.
-         *
-         */
-        if(col == 2 && row < 4){
-            Object data = model.getValueAt(row, col);
-            model.setValueAt(
-                    Integer.parseInt(data.toString())*p.getProductPrice((String)model.getValueAt(row, 1)),
-                    row,
-                    col+1);
+        //Date format
+        DateFormat dFormat = new SimpleDateFormat("dd/MM/yyyy");
+        //Input to be parsed should strictly follow the defined date format above
+        dFormat.setLenient(false);
+
+        //Make sure Date is not empty
+        if(!dateText.getText().isEmpty()){
+            try {
+                dFormat.parse(dateText.getText());
+                dateText.setBorder(new JTextField().getBorder());
+            } catch(ParseException e ){
+                valid = false;
+                dateText.setBorder(BorderFactory.createLineBorder(Color.RED));
+                JOptionPane.showMessageDialog(this, "Enter a date in the form dd/MM/yyyy");
+            }
+        } else {
+            valid = false;
+            dateText.setBorder(BorderFactory.createLineBorder(Color.RED));
+            JOptionPane.showMessageDialog(this, "Enter a date.");
         }
+
+        return valid;
     }
 }

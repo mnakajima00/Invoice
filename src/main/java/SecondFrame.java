@@ -1,3 +1,6 @@
+import apple.laf.JRSUIUtils;
+import com.sun.codemodel.internal.JFieldRef;
+import com.sun.xml.internal.ws.util.QNameMap;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -20,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class SecondFrame extends JFrame implements ActionListener {
     //Customer class declaration
@@ -27,22 +31,26 @@ public class SecondFrame extends JFrame implements ActionListener {
     //Products class dec
     Products p;
     //JFrame components declaration
-    JLabel date;
-    JTextField dateText;
-    JButton addRowsButton,removeRowsButton, addToInvoiceButton;
+    JLabel date, symptomsLabel, doctorLabel;
+    JTextField dateText, doctorText;
+    JTextArea symptomsText;
+    JButton addRowsButton,removeRowsButton, addToInvoiceButton, nextButton, backButton;
     JTable table;
     JEditorPane invoicePreviewPane;
     //JPanel
     JPanel rightPanel;
 
+    //Table
     DefaultTableModel model;
+    String[] col;
+    Object[][] data;
 
     public SecondFrame(Customer c){
         super("Invoice");
 
         //Initialize Customer Class
         this.c = c;
-        System.out.println(c);
+
         //Init Products class
         p = new Products();
         //Initialize JFrame
@@ -83,19 +91,32 @@ public class SecondFrame extends JFrame implements ActionListener {
          */
 
         /////Container/////
-        JPanel container = new JPanel(new GridLayout(0, 1));
+        JPanel container = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
         container.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         /////MainPanel JPanel/////
         JPanel mainPanel = new JPanel(new GridLayout(0, 2));
+        gbc.gridx= 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
         //Method that adds all widgets in mainPanel
         buildMainPanel(mainPanel);
         //Add mainPanel to container
-        container.add(mainPanel);
-
-        /////Symptoms JPanel/////
+        container.add(mainPanel, gbc);
 
         /////Back and Next Button JPanel/////
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        container.add(backButton, gbc);
+
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+
+        container.add(nextButton, gbc);
 
         /////Add container to JFrame/////
         add(container);
@@ -122,7 +143,11 @@ public class SecondFrame extends JFrame implements ActionListener {
     private void buildLeftPanel(JPanel leftPanel){
         //Initialize components
         date = new JLabel("Date:");
+        symptomsLabel = new JLabel("Symptoms:");
+        doctorLabel = new JLabel("Attending Doctor: Dr.");
+        doctorText = new JTextField(12);
         dateText = new JTextField(8);
+        dateText.setText("11/12/2020");
         dateText.addActionListener(this);
         //JButtons initialization and add action listener
         addRowsButton = new JButton("Add Row");
@@ -131,6 +156,10 @@ public class SecondFrame extends JFrame implements ActionListener {
         removeRowsButton.addActionListener(this);
         addToInvoiceButton = new JButton("Add to Invoice");
         addToInvoiceButton.addActionListener(this);
+        nextButton = new JButton("Next");
+        nextButton.addActionListener(this);
+        backButton = new JButton("Back");
+        backButton.addActionListener(this);
 
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -167,13 +196,46 @@ public class SecondFrame extends JFrame implements ActionListener {
         leftPanel.add(addToInvoicePanel, gbc);
 
         /////JSeparator/////
-        JSeparator js = new JSeparator(JSeparator.HORIZONTAL);
+        JSeparator js1 = new JSeparator(JSeparator.HORIZONTAL);
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.weightx = 0.1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 20, 0, 20);
-        leftPanel.add(js, gbc);
+        leftPanel.add(js1, gbc);
+
+        ///// JTEXTAREA /////
+        gbc.gridy = 4;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.insets = new Insets(0, 20, 5, 0);
+        leftPanel.add(symptomsLabel, gbc);
+
+        symptomsText = new JTextArea(5, 10);
+        symptomsText.setLineWrap(true);
+        JScrollPane textAreaScrollPane = new JScrollPane(symptomsText);
+        gbc.insets = new Insets(0, 10, 10, 10);
+        symptomsText.setBorder(new JTextField().getBorder());
+        gbc.gridy = 5;
+        leftPanel.add(textAreaScrollPane, gbc);
+
+        /////JSeparator/////
+        JSeparator js2 = new JSeparator(JSeparator.HORIZONTAL);
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.weightx = 0.1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(0, 20, 0, 20);
+        leftPanel.add(js2, gbc);
+
+        /////DOCTOR/////
+        gbc.gridy = 7;
+        gbc.insets = new Insets(0, 20, 0, 20);
+        gbc.fill = GridBagConstraints.NONE;
+
+        JPanel doctorPanel = new JPanel();
+        doctorPanel.add(doctorLabel);
+        doctorPanel.add(doctorText);
+        leftPanel.add(doctorPanel, gbc);
 
     }
     private void buildTable(JPanel leftPanel, GridBagConstraints gbc){
@@ -189,7 +251,6 @@ public class SecondFrame extends JFrame implements ActionListener {
                     return Double.class;
                 } else { //Anything else will be of class String
                     return String.class;
-
                 }
             }
 
@@ -213,13 +274,13 @@ public class SecondFrame extends JFrame implements ActionListener {
 
             }
         };
-        String[] col = {
+        col = new String[]{
                 "No.",
                 "Description",
                 "Qty",
                 "Price"
         };
-        Object[][] data = {
+        data = new Object[][]{
                 {1, "Consultation", 0, 0.0},
                 {2, "Special Acupuncture Treatment", 0, 0.0},
                 {3, "Medical Machine Therapy", 0, 0.0},
@@ -229,7 +290,7 @@ public class SecondFrame extends JFrame implements ActionListener {
         model.setDataVector(data, col);
         /////Initialize Table/////
         table = new JTable(model);
-        table.setMinimumSize(new Dimension(400, 150));
+        table.setMinimumSize(new Dimension(450, 150));
         JScrollPane scrollPane = new JScrollPane(table);
         table.setPreferredScrollableViewportSize(table.getMinimumSize());
         table.setFillsViewportHeight(true);
@@ -265,7 +326,9 @@ public class SecondFrame extends JFrame implements ActionListener {
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 20, 0, 20);
         gbc.gridwidth = GridBagConstraints.REMAINDER;
+
         leftPanel.add(scrollPane, gbc);
+
     }
 
     private void buildRightPanel(JPanel rightPanel){
@@ -281,14 +344,13 @@ public class SecondFrame extends JFrame implements ActionListener {
         invoicePreviewPane.setContentType("text/html");
         JScrollPane jsp = new JScrollPane(invoicePreviewPane);
         jsp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        jsp.setMinimumSize(new Dimension(400, 300));
+        jsp.setMinimumSize(new Dimension(400, 450));
         jsp.setPreferredSize(jsp.getMinimumSize());
 
         //GridBagLayout Constraints setup
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = GridBagConstraints.HORIZONTAL;
-        gbc.gridheight = GridBagConstraints.VERTICAL;
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
@@ -299,8 +361,8 @@ public class SecondFrame extends JFrame implements ActionListener {
 
     private void setupPreview(JEditorPane invoicePreviewPane){
         //Get HTML file and show it on JEditorPane
-        File f = new File("src/preview.html");
-        File edited = new File("src/preview_temp.html");
+        File f = new File("src/main/java/preview.html");
+        File edited = new File("src/main/java/preview_temp.html");
 
         try {
             edited.createNewFile(); //Creates a new temp file "preview_temp.html"
@@ -322,30 +384,28 @@ public class SecondFrame extends JFrame implements ActionListener {
 
     }
 
-    //This method will write html code to the html file (preview.html)
+    //This method generates the html code for preview.html. returns the code as a String
     private String writeToHTMLDoc(File f){
         Document d = null;
-
+        Element e;
         try {
             d = Jsoup.parse(f, "UTF-8", "");
-            for(Map.Entry<String, HashMap<String, Double>> entry : c.getAllInvoices().entrySet()) {
-                Element e = d.select("div#container").first().appendElement("div")
-                        .addClass("invoice");
-                String date = "Date: " + entry.getKey();
-                e.appendElement("h3").text(date);
-
-                for(Map.Entry<String, Double> map: entry.getValue().entrySet()){
-
+            e = d.select("div#container").first().appendElement("div")
+                    .addClass("invoice");
+            for(Map.Entry<String, LinkedHashMap<String, Double>> entry : c.getAllInvoices().entrySet()) {
+                String date = entry.getKey();
+                e.appendElement("h3").text("Date: " + date);
+                for(Map.Entry<String, Double> map : entry.getValue().entrySet()){
                     String productName = map.getKey();
-                    double price = map.getValue();
-
-                    e.appendElement("p").text(productName + ": " + price + "RM");
-
+                    Double price = map.getValue();
+                    e.appendElement("p").text("Product: " + productName + " Price: " + price);
                 }
             }
-            //System.out.println(d);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+            e.appendElement("h3").text("Total: " + c.getTotalPrice());
+            System.out.println(d);
+        } catch (IOException err) {
+            err.printStackTrace();
         }
 
         return d.toString();
@@ -370,18 +430,36 @@ public class SecondFrame extends JFrame implements ActionListener {
         } else if(e.getActionCommand().equals("Add to Invoice")){
             //Validate inputs
             if(validateInputs()) {
-                LinkedHashMap<String, Double> products = new LinkedHashMap<>();
+                LinkedHashMap<String, Double> invoice = new LinkedHashMap<>();
                 for (int i = 0; i < model.getRowCount(); i++) {
                     String desc = (String) model.getValueAt(i, 1);
                     Double price = (Double) model.getValueAt(i, 3);
-                    products.put(desc, price);
+                    invoice.put(desc, price);
                 }
                 //Add invoice to Customer class
-                c.addToInvoiceList(dateText.getText(), products);
+                c.addToInvoiceList(dateText.getText(), invoice);
                 System.out.println("Number of invoice(s):"+c.getAllInvoices().size());
                 //Show invoice(s) in preview
                 setupPreview(invoicePreviewPane);
+                //Reset inputs
+                resetInputs();
             }
+        } else if(e.getActionCommand().equals("Back")){
+            //If user clicks the Back button, goes back to MainFrame
+            new MainFrame(c.getDate(), c.getBillTo(), c.getDateOfBirth(), c.getName(), c.getGenderIndex(c.getGender()), c.getPassportNum());
+            setVisible(false);
+        } else if(e.getActionCommand().equals("Next")){
+            //If user clicks the Next button, it opens the PDF
+            c.setSymptoms(symptomsText.getText());
+            c.setAttendingDoctor(doctorText.getText());
+            try {
+                c.printInvoice(this);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+
         }
     }
 
@@ -393,15 +471,21 @@ public class SecondFrame extends JFrame implements ActionListener {
         //Input to be parsed should strictly follow the defined date format above
         dFormat.setLenient(false);
 
-        //Make sure Date is not empty
+        //Make sure Date is not empty & that the there are no two same dates in the invoice
         if(!dateText.getText().isEmpty()){
-            try {
-                dFormat.parse(dateText.getText());
-                dateText.setBorder(new JTextField().getBorder());
-            } catch(ParseException e ){
+            if(!c.dateExists(dateText.getText())) {
+                try {
+                    dFormat.parse(dateText.getText());
+                    dateText.setBorder(new JTextField().getBorder());
+                } catch (ParseException e) {
+                    valid = false;
+                    dateText.setBorder(BorderFactory.createLineBorder(Color.RED));
+                    JOptionPane.showMessageDialog(this, "Enter a date in the form dd/MM/yyyy");
+                }
+            } else {
                 valid = false;
                 dateText.setBorder(BorderFactory.createLineBorder(Color.RED));
-                JOptionPane.showMessageDialog(this, "Enter a date in the form dd/MM/yyyy");
+                JOptionPane.showMessageDialog(this, "Date already exists.");
             }
         } else {
             valid = false;
@@ -410,5 +494,23 @@ public class SecondFrame extends JFrame implements ActionListener {
         }
 
         return valid;
+    }
+
+    private void resetInputs(){
+        //Reset date
+        dateText.setText("");
+        //Reset Table
+        model.setRowCount(4);
+        //Table QTY
+        model.setValueAt(0, 0, 2);
+        model.setValueAt(0, 1, 2);
+        model.setValueAt(0, 2, 2);
+        model.setValueAt(0, 3, 2);
+        //Table Price
+        model.setValueAt(0.0, 0, 3);
+        model.setValueAt(0.0, 1, 3);
+        model.setValueAt(0.0, 2, 3);
+        model.setValueAt(0.0, 3, 3);
+        model.fireTableDataChanged();
     }
 }

@@ -37,6 +37,27 @@ public class MainFrame extends JFrame implements ActionListener {
         setVisible(true);
     }
 
+    public MainFrame(String date, String billTo, String dob, String name, int gender, String passport) {
+        super("Invoice");
+
+        setSize(550, 600);
+        setLocationRelativeTo(null); // Set frame to center
+        //setResizable(false);
+        setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
+
+        addWidgets(); //Adds all widgets inside JFrame
+        dateText.setText(date);
+        billToText.setText(billTo);
+        birthText.setText(dob);
+        nameText.setText(name);
+        genderCombo.setSelectedIndex(gender);
+        passportText.setText(passport);
+
+        pack();
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
+    }
+
     public void addWidgets(){
 
         //Current date
@@ -100,10 +121,15 @@ public class MainFrame extends JFrame implements ActionListener {
         passportNumLabel = new JLabel("Passport No:");
         //TextFields
         dateText = new JTextField(12);
+        dateText.setText("12/11/2020");
         billToText = new JTextField(12);
+        billToText.setText("Maiku");
         nameText = new JTextField(12);
+        nameText.setText("Maiku");
         birthText = new JTextField(12);
+        birthText.setText("12/11/2009");
         passportText = new JTextField(12);
+        passportText.setText("123456");
         //JButton
         nextBtn = new JButton("Next");
         clearBtn = new JButton("Clear");
@@ -249,7 +275,7 @@ public class MainFrame extends JFrame implements ActionListener {
         if(e.getActionCommand().equals("Clear")){ //If Clear button is clicked
             clear();
         } else if(e.getActionCommand().equals("Next")){ //If Next button is clicked
-            if(!validateInputs()){ //CHANGE TO MAKE VALIDATION WORK!!!!!!
+            if(validateInputs()){ //CHANGE TO MAKE VALIDATION WORK!!!!!!
                 //Go to next step: Entering information for Products/Services purchased
                 Customer c = new Customer(
                         dateText.getText(),
@@ -258,8 +284,8 @@ public class MainFrame extends JFrame implements ActionListener {
                         birthText.getText(),
                         genderCombo.getSelectedItem().toString(),
                         passportText.getText());
-                SecondFrame sf = new SecondFrame(c);
-                this.setVisible(false);
+                new SecondFrame(c);
+                setVisible(false);
             }
         }
     }

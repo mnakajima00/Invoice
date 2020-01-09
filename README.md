@@ -1,4 +1,4 @@
-# App
-An App Generator - made with Java
+# main.App
+An main.App Generator - made with Java
 
 ## Table of Contents

@@ -1,12 +1,11 @@
+package Util;
 
+import main.InvoiceFrame;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.xhtmlrenderer.pdf.ITextRenderer;
-import org.xhtmlrenderer.pdf.PDFCreationListener;
-
-import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.nio.file.Files;
@@ -14,9 +13,14 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Customer {
+    //Util.Customer info variable declarations
     String date, billTo, name, dateOfBirth, gender, passportNum, symptoms, attendingDoctor;
-    TreeMap<String, LinkedHashMap<String, Double>> totalInvoice; //List of invoices the customer has
-    public Customer(String date, String billTo, String name, String dateOfBirth, String gender, String passportNum) {
+    //TreeMap that contains invoice(s)
+    TreeMap<String, LinkedHashMap<String, Double>> totalInvoice;
+    //Destination of where the file will be saved
+    String fileDest;
+    public Customer(String date, String billTo, String name, String dateOfBirth, String gender, String passportNum, String fileDest) {
+        //Initialize variables
         this.date = date;
         this.billTo = billTo;
         this.name = name;
@@ -25,34 +29,36 @@ public class Customer {
         this.passportNum = passportNum;
         this.symptoms = "";
         this.attendingDoctor = "";
-        Comparator<String> sortByDate = new Comparator<String>() {
-            @Override
-            public int compare(String o1, String o2) {
-                String[] splitDate1 = o1.split("/");
-                int day1 = Integer.parseInt(splitDate1[0]);
-                int month1 = Integer.parseInt(splitDate1[1]);
-                int year1 = Integer.parseInt(splitDate1[2]);
+        this.fileDest = fileDest;
 
-                String[] splitDate2 = o2.split("/");
-                int day2 = Integer.parseInt(splitDate2[0]);
-                int month2 = Integer.parseInt(splitDate2[1]);
-                int year2 = Integer.parseInt(splitDate2[2]);
+        //This sorts the invoices by date. Earliest to Oldest
+        Comparator<String> sortByDate = (o1, o2) -> {
+            String[] splitDate1 = o1.split("/");
+            int day1 = Integer.parseInt(splitDate1[0]);
+            int month1 = Integer.parseInt(splitDate1[1]);
+            int year1 = Integer.parseInt(splitDate1[2]);
 
-                if (year1 > year2 //If the year for o1 is > the year for o2
-                        || (year1 == year2 && month1 > month2) //If they both have the same year but month of o1 > month of o2
-                        || (year1 == year2 && month1 == month2 && day1 > day2)){ //Same month and year but day of o1 > day of
-                    return 1;
-                } else if((year1 == year2 && month1 == month2 && day1 == day2)){ //If they have the same year, month and day
-                    return 0;
-                } else {
-                    return -1;
-                }
+            String[] splitDate2 = o2.split("/");
+            int day2 = Integer.parseInt(splitDate2[0]);
+            int month2 = Integer.parseInt(splitDate2[1]);
+            int year2 = Integer.parseInt(splitDate2[2]);
+
+            if (year1 > year2 //If the year for o1 is > the year for o2
+                    || (year1 == year2 && month1 > month2) //If they both have the same year but month of o1 > month of o2
+                    || (year1 == year2 && month1 == month2 && day1 > day2)){ //Same month and year but day of o1 > day of
+                return 1;
+            } else if((year1 == year2 && month1 == month2 && day1 == day2)){ //If they have the same year, month and day
+                return 0;
+            } else {
+                return -1;
             }
         };
 
+        //Initialize TreeMap
         totalInvoice = new TreeMap<>(sortByDate);
     }
 
+    //Getters and Setters
     public String getDate() {
         return date;
     }
@@ -74,9 +80,9 @@ public class Customer {
     }
 
     public int getGenderIndex(String gender){
-        if(gender == "Male"){
+        if(gender.equals("Male")){
             return 1;
-        } else if(gender == "Female"){
+        } else if(gender.equals("Female")){
             return 2;
         } else {
             return 0;
@@ -103,12 +109,12 @@ public class Customer {
         this.symptoms = symptoms;
     }
 
-    public TreeMap<String, LinkedHashMap<String, Double>> getAllInvoices(){
-        return totalInvoice;
+    public void setFileDest(String fileDest){
+        this.fileDest = fileDest;
     }
 
-    public void addToInvoiceList(String date, LinkedHashMap<String, Double> purchases){
-        this.totalInvoice.put(date, purchases);
+    public String getFileDest(){
+        return this.fileDest;
     }
 
     public Double getTotalPrice(){
@@ -122,16 +128,29 @@ public class Customer {
         return totalPrice;
     }
 
+    public TreeMap<String, LinkedHashMap<String, Double>> getAllInvoices(){
+        return totalInvoice;
+    }
+
+    //Adds new invoice to TreeMap
+    public void addToInvoiceList(String date, LinkedHashMap<String, Double> purchases){
+        this.totalInvoice.put(date, purchases);
+    }
+
     //Checks for duplicate keys in Treemap
     public boolean dateExists(String date){
         return totalInvoice.containsKey(date);
     }
 
-    public void printInvoice(SecondFrame sf) throws IOException, InterruptedException {
-        //invoice template
-        File invoiceTemp = new File("src/main/java/invoice_template.html");
+    //Exports generated HTML file into PDF
+    public void printInvoice(InvoiceFrame sf) throws IOException{
+        //Invoice HTML template
+        File invoiceTemp = new File("src/main/java/html/invoice_template.html");
         //New file to save final invoice
-        File finalInvoice = new File("src/main/java/invoice_"+getPassportNum()+".html");
+        String dateString = getDate();
+        String formatDate = dateString.replace("/", ""); //Formats the date from eg: 11/12/2020 to 11122020
+        //Final invoice in HTML
+        File finalInvoice = new File("src/main/java/html/"+getName()+"_"+getPassportNum()+"_"+formatDate+".html");
 
         try {
             finalInvoice.createNewFile(); //Creates a new html file where the final invoice will be generated (in HTML)
@@ -143,45 +162,27 @@ public class Customer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String inputFile = "src/main/java/invoice_"+getPassportNum()+".html"; //Final invoice in HTML
-        String outputFile = "src/main/java/invoice_"+getPassportNum()+".pdf"; //Final invoice location in pdf
+        String inputFile = finalInvoice.getPath(); //Path to final invoice in HTML
+        //Path to where the final invoice in PDF will be saved to
+        String outputFile = fileDest+"/"+getName()+"_"+getPassportNum()+"_"+formatDate+".pdf";
 
         String html = new String(Files.readAllBytes(Paths.get(inputFile)));
+        //Parse HTML into XHTML
         final Document document = Jsoup.parse(html);
-        document.outputSettings().syntax(Document.OutputSettings.Syntax.xml); //Parse html in XHTML
+        document.outputSettings().syntax(Document.OutputSettings.Syntax.xml);
 
+        //Using JSoup and flyingsaucer api to generate PDF
         ITextRenderer renderer = new ITextRenderer();
         renderer.setDocumentFromString(document.html());
         renderer.layout();
 
         try(OutputStream os = Files.newOutputStream(Paths.get(outputFile))){
-            renderer.setListener(new PDFCreationListener() {
-                JProgressBar pb;
-                @Override
-                public void preOpen(ITextRenderer iTextRenderer) {
-                    pb = new JProgressBar(0, 100);
-                    pb.setStringPainted(true);
-                    pb.setValue(33);
-                    sf.setVisible(true);
-                    sf.add(pb);
+            //IN PROGRESS - Show JProgressBar while PDF is being created//
 
-                }
-
-                @Override
-                public void preWrite(ITextRenderer iTextRenderer, int i){
-                    pb.setValue(66);
-                }
-
-                @Override
-                public void onClose(ITextRenderer iTextRenderer) {
-                    pb.setValue(100);
-                    pb.setVisible(false);
-                }
-            });
-            renderer.createPDF(os);
+            renderer.createPDF(os); //Creates PDF
             Desktop desktop = Desktop.getDesktop();
-            File output = new File(outputFile);
-            if(output.exists()){
+            File output = new File(outputFile); //Gets PDF file that was just created
+            if(output.exists()){ //If the file exists, open it
                 desktop.open(output);
             }
         }
@@ -189,20 +190,21 @@ public class Customer {
 
     }
 
+    //Generates Invoice in HTML
     public String generateInvoiceHTML(File f){
         Document d = null;
         try {
-            d = Jsoup.parse(f, "UTF-8", "");
+            d = Jsoup.parse(f, "UTF-8", ""); //Try to parse invoice_template.html
         } catch (IOException err) {
             err.printStackTrace();
         }
-        File absPathToCSS = new File("src/main/java/invoice_template.css");
+        File absPathToCSS = new File("src/main/java/html/invoice_template.css"); //Get CSS file
 
-        //Get the absolute  path to CSS file
+        //Set the absolute  path to CSS file
         Element abs = d.select("link").first().attr("href", "file://"+absPathToCSS.getAbsolutePath());
         abs = d.select("link").last().attr("href", "file://"+absPathToCSS.getAbsolutePath());
 
-        //Adding HTML code for Customer Info
+        //Adding HTML code for Util.Customer Info
         Elements e = d.select("span#billTo").append(" "+getBillTo());
         e = d.select("span#name").append(" "+getName());
         e = d.select("span#dateOfBirth").append(" "+getDateOfBirth());
@@ -211,29 +213,35 @@ public class Customer {
         e = d.select("span#date").append(" "+getDate());
 
         //Adding HTML code for Invoice
+        //Loop through Invoice TreeMap
         for(Map.Entry<String, LinkedHashMap<String, Double>> entry : totalInvoice.entrySet()){
             String date = entry.getKey();
             int productCount = 0;
 
+            //Adds a new <table> and <tr> for the Invoice
             Element tableInvoiceElement = d.getElementById("invoiceColumn")
                     .appendElement("table")
                     .appendElement("tr").addClass("date")
-                    .appendElement("td").text(date); //Date row
+                    .appendElement("td").text(date);
+
+            //Adds a new <table> and <tr> for the Amount(Total)
             Element tableAmountElement = d.getElementById("amountColumn")
                     .appendElement("table")
-                    .appendElement("tr").appendElement("td").text("-");
+                    .appendElement("tr").appendElement("td").text("-"); // Empty row since the first row is for the Date
+            //Loop through inner LinkedHashMap
             for(Map.Entry<String, Double> map : entry.getValue().entrySet()){
-                 String product = map.getKey();
-                 double price = map.getValue();
-                productCount += 1;
+                 String product = map.getKey(); //Product name
+                 double price = map.getValue(); //Product price
+                productCount += 1; //Keeps count of number of products
 
-                //Invoice Date
+                //Adds product and its price
                 tableInvoiceElement = d.getElementById("invoiceColumn")
                         .getElementsByTag("table").last()
                         .appendElement("tr")//Product No. & Description
                         .appendElement("td").addClass("productCount").text(Integer.toString(productCount));
                 tableInvoiceElement.appendElement("td").addClass("product").text(product);
 
+                //Adds product price
                 tableAmountElement = d.getElementById("amountColumn") //Add an empty row for date
                         .getElementsByTag("table").last()
                         .appendElement("tr")
@@ -241,24 +249,31 @@ public class Customer {
             }
         }
 
-        //Adding Symptoms
+        //Adding Symptoms HTML
         Element symptomsHTML = d.getElementById("symptoms")
                 .appendElement("td").text("*Symptoms: "+getSymptoms());
         symptomsHTML = d.getElementById("symptoms")
                 .appendElement("td");
 
-        //Adding Total
+        //Adding Total HTML
         Element totalHTML = d.getElementById("totalPrice")
                 .appendElement("td");
         totalHTML = d.getElementById("totalPrice")
                 .appendElement("td").text("Total: " + getTotalPrice());
 
-        //Adding doctor
+        //Adding doctot HTML
         Element doctorHTML = d.getElementById("doctor")
                 .text("(Dr. "+getAttendingDoctor()+")");
 
+        //Returns the generated HTML as a String
         return d.toString();
     }
 
+    //Delete single invoice, given the date (Key)
+    public boolean deleteInvoice(String date){
+        //If invoice exists, remove from TreeMap
+        return totalInvoice.remove(date) != null;
+
+    }
 
 }

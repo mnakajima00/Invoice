@@ -1,10 +1,12 @@
+package Util;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 public class Products {
-    //Products
+    //Saves Util.Products and its price
     private LinkedHashMap<String, Double> services;
-    public int numCounter;
+    public int numCounter; //Number of Util.Products added
     public Products(){
         services = new LinkedHashMap<>();
 
@@ -18,6 +20,7 @@ public class Products {
         numCounter = services.size()+1;
     }
 
+    //Returns products corresponding price
     public Double getProductPrice(String product){
         return services.get(product);
     }

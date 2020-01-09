@@ -1,34 +1,59 @@
+package main;
+
+import Util.Customer;
+
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class MainFrame extends JFrame implements ActionListener {
+public class CustomerFrame extends JFrame implements ActionListener {
 
     //Declaring JFrame Components
+    //JMenu Components & FileChooser
+    JMenuBar menuBar;
+    JMenu menu;
+    JMenuItem menuItem;
+    JFileChooser fileChooser;
+    String fileDest;
+    //JFrame Widgets
     JLabel billToLabel, nameLabel, birthLabel, genderLabel, passportNumLabel, dateLabel, currentDateLabel;
     JTextField billToText, nameText, birthText, passportText, dateText;
     JComboBox genderCombo;
     JButton nextBtn, clearBtn;
+    //Borders
     Border errorBorder, defaultBorder, defaultJComboBorder;
 
     //Date format
     DateTimeFormatter dFormat;
 
     //Initializes the JFrame
-    public MainFrame(){
+    public CustomerFrame(){
         super("Invoice");
 
         setSize(550, 600);
         setLocationRelativeTo(null); // Set frame to center
-        //setResizable(false);
+        setResizable(false);
         setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
+
+        //Make "Invoice" folder if it doesn't exist to keep all Invoices
+        File invoiceFolder = new File(FileSystemView.getFileSystemView().getDefaultDirectory()+"/Invoices");
+        if(!invoiceFolder.exists()){
+            invoiceFolder.mkdir();
+        }
+        //Set default file location to "Invoice"
+        fileDest = invoiceFolder.getPath();
+
+        //Set up menu
+        setupMenu();
 
         addWidgets(); //Adds all widgets inside JFrame
 
@@ -37,15 +62,20 @@ public class MainFrame extends JFrame implements ActionListener {
         setVisible(true);
     }
 
-    public MainFrame(String date, String billTo, String dob, String name, int gender, String passport) {
+    //Constructor to be called when user returns from SecondFrame
+    public CustomerFrame(String date, String billTo, String dob, String name, int gender, String passport, String fileDest) {
         super("Invoice");
 
         setSize(550, 600);
         setLocationRelativeTo(null); // Set frame to center
-        //setResizable(false);
+        setResizable(false);
         setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
 
+        //Set up menu
+        setupMenu();
+
         addWidgets(); //Adds all widgets inside JFrame
+
         dateText.setText(date);
         billToText.setText(billTo);
         birthText.setText(dob);
@@ -58,10 +88,9 @@ public class MainFrame extends JFrame implements ActionListener {
         setVisible(true);
     }
 
+    //Adds all the components into JFrame
     public void addWidgets(){
 
-        //Current date
-        LocalDate now = LocalDate.now();
         //Initialize date format
         dFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         //Current Date
@@ -83,20 +112,6 @@ public class MainFrame extends JFrame implements ActionListener {
          */
 
         //JPanels:
-        //Current Date Container
-        JPanel currentDatePanel = new JPanel(new GridBagLayout());
-        GridBagConstraints dateGbc = new GridBagConstraints();
-
-        dateGbc.gridx = 0;
-        dateGbc.gridy = 0;
-        dateGbc.weightx = 1;
-        dateGbc.weighty = 1;
-        dateGbc.anchor = GridBagConstraints.CENTER;
-        dateGbc.insets = new Insets(15, 0, 20, 0);
-        currentDatePanel.add(currentDateLabel, dateGbc);
-
-        add(currentDatePanel); //Add currentDatePanel to JFrame
-
 
         //Main Container
         JPanel container = new JPanel(new GridLayout(0, 1));
@@ -121,7 +136,7 @@ public class MainFrame extends JFrame implements ActionListener {
         passportNumLabel = new JLabel("Passport No:");
         //TextFields
         dateText = new JTextField(12);
-        dateText.setText("12/11/2020");
+        dateText.setText(LocalDate.now().format(dFormat));
         billToText = new JTextField(12);
         billToText.setText("Maiku");
         nameText = new JTextField(12);
@@ -140,9 +155,7 @@ public class MainFrame extends JFrame implements ActionListener {
         String[] genders = {"", "Male", "Female", "Other"};
         genderCombo = new JComboBox(genders);
 
-        //GridBagLayout init:
-
-        ////////// FIRST ROW //////////
+        ////////// FIRST ROW  - Date //////////
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.NONE;
@@ -159,7 +172,7 @@ public class MainFrame extends JFrame implements ActionListener {
         gbc.anchor = GridBagConstraints.LINE_START;
         widgetPanel.add(dateText, gbc);
 
-        ////////// SECOND ROW //////////
+        ////////// SECOND ROW - Bill to //////////
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.fill = GridBagConstraints.NONE;
@@ -176,7 +189,7 @@ public class MainFrame extends JFrame implements ActionListener {
         gbc.anchor = GridBagConstraints.LINE_START;
         widgetPanel.add(billToText, gbc);
 
-        ////////// THIRD ROW //////////
+        ////////// THIRD ROW - Name and Date of Birth//////////
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.fill = GridBagConstraints.NONE;
@@ -206,7 +219,7 @@ public class MainFrame extends JFrame implements ActionListener {
         gbc.anchor = GridBagConstraints.LINE_START;
         widgetPanel.add(birthText, gbc);
 
-        ////////// FOURTH ROW //////////
+        ////////// FOURTH ROW - Gender//////////
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.fill = GridBagConstraints.NONE;
@@ -221,7 +234,7 @@ public class MainFrame extends JFrame implements ActionListener {
         gbc.anchor = GridBagConstraints.LINE_START;
         widgetPanel.add(genderCombo, gbc);
 
-        ////////// FIFTH ROW //////////
+        ////////// FIFTH ROW - Passport Number//////////
         gbc.gridx = 0;
         gbc.gridy = 4;
         gbc.anchor = GridBagConstraints.LINE_END;
@@ -235,7 +248,7 @@ public class MainFrame extends JFrame implements ActionListener {
         gbc.anchor = GridBagConstraints.LINE_START;
         widgetPanel.add(passportText, gbc);
 
-        ////////// SEPARATOR //////////
+        ////////// JSEPARATOR //////////
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.weightx = 1;
@@ -269,24 +282,32 @@ public class MainFrame extends JFrame implements ActionListener {
         add(container, BorderLayout.PAGE_START);
     }
 
-    //This method gets called when either "Clear" or "Next" button is clicked
+    //This method gets called when either "Clear", "Next" or "Export To" button is clicked
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(e.getActionCommand().equals("Clear")){ //If Clear button is clicked
-            clear();
-        } else if(e.getActionCommand().equals("Next")){ //If Next button is clicked
-            if(validateInputs()){ //CHANGE TO MAKE VALIDATION WORK!!!!!!
-                //Go to next step: Entering information for Products/Services purchased
-                Customer c = new Customer(
-                        dateText.getText(),
-                        billToText.getText(),
-                        nameText.getText(),
-                        birthText.getText(),
-                        genderCombo.getSelectedItem().toString(),
-                        passportText.getText());
-                new SecondFrame(c);
-                setVisible(false);
-            }
+        switch (e.getActionCommand()) {
+            case "Clear":  //If Clear button is clicked
+                clear();
+                break;
+            case "Next":  //If Next button is clicked
+                if (validateInputs()) { //CHANGE TO MAKE VALIDATION WORK!!!!!!
+                    //Go to next step: Entering information for Util.Products/Services purchased
+                    Customer c = new Customer(
+                            dateText.getText(),
+                            billToText.getText(),
+                            nameText.getText(),
+                            birthText.getText(),
+                            genderCombo.getSelectedItem().toString(),
+                            passportText.getText(),
+                            fileDest);
+                    new InvoiceFrame(c);
+                    setVisible(false);
+                }
+                break;
+            case "Export To":
+                //User clicks menu item "Save As"
+                fileDestinationChooser();
+                break;
         }
     }
 
@@ -330,7 +351,7 @@ public class MainFrame extends JFrame implements ActionListener {
         //Input to be parsed should strictly follow the defined date format above
         dFormat.setLenient(false);
 
-        try {
+        try { //Try to parse the date text to see if they are in the right format
             dFormat.parse(dateText.getText());
             dateText.setBorder(defaultBorder);
         } catch(ParseException e ){
@@ -338,7 +359,7 @@ public class MainFrame extends JFrame implements ActionListener {
             valid = false;
         }
 
-        try {
+        try { //Try to parse the birth date text to see if they are in the right format
             dFormat.parse(birthText.getText());
             birthText.setBorder(defaultBorder);
         } catch (ParseException e){
@@ -346,7 +367,7 @@ public class MainFrame extends JFrame implements ActionListener {
             valid = false;
         }
 
-        if(!valid) {
+        if(!valid) { //Show JOptionPane if the dates are in the wrong format
             JOptionPane.showMessageDialog(this, "The date should be in the format 'dd/MM/yyyy'");
         }
 
@@ -393,11 +414,37 @@ public class MainFrame extends JFrame implements ActionListener {
             valid = false;
             genderCombo.setBorder(errorBorder);
             JOptionPane.showMessageDialog(this, "Select a valid gender.");
-            System.out.println("Error at gender selection");
         } else {
             genderCombo.setBorder(defaultJComboBorder);
         }
 
         return valid;
+    }
+
+    private void setupMenu(){
+        //Set up the "File" menu
+        menuBar = new JMenuBar();
+        menu = new JMenu("File");
+        menuItem = new JMenuItem("Export To");
+        menuItem.addActionListener(this);
+        menu.add(menuItem);
+        menuBar.add(menu);
+        setJMenuBar(menuBar);
+    }
+
+    //Lets user choose file export destination
+    private void fileDestinationChooser(){
+
+        fileChooser = new JFileChooser();
+        fileChooser.setCurrentDirectory(FileSystemView.getFileSystemView().getDefaultDirectory());
+        fileChooser.setDialogTitle(fileDest);
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            fileDest = fileChooser.getSelectedFile().getPath();
+        }
+
     }
 }

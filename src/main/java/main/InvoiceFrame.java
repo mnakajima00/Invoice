@@ -1,6 +1,7 @@
-import apple.laf.JRSUIUtils;
-import com.sun.codemodel.internal.JFieldRef;
-import com.sun.xml.internal.ws.util.QNameMap;
+package main;
+
+import Util.Customer;
+import Util.Products;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -8,6 +9,7 @@ import org.jsoup.nodes.Element;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.*;
 import javax.swing.text.html.HTMLEditorKit;
 import java.awt.*;
@@ -20,21 +22,23 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
-public class SecondFrame extends JFrame implements ActionListener {
-    //Customer class declaration
+public class InvoiceFrame extends JFrame implements ActionListener {
+    //Util.Customer class declaration
     Customer c;
-    //Products class dec
+    //Util.Products class declaration
     Products p;
     //JFrame components declaration
-    JLabel date, symptomsLabel, doctorLabel;
-    JTextField dateText, doctorText;
+    JMenuBar menuBar;
+    JMenu menu;
+    JMenuItem menuItem;
+    JFileChooser fileChooser;
+    JLabel date, symptomsLabel, doctorLabel, deleteLabel;
+    JTextField dateText, doctorText, deleteText;
     JTextArea symptomsText;
-    JButton addRowsButton,removeRowsButton, addToInvoiceButton, nextButton, backButton;
+    JButton addRowsButton,removeRowsButton, addToInvoiceButton, nextButton, backButton, deleteButton;
     JTable table;
     JEditorPane invoicePreviewPane;
     //JPanel
@@ -45,16 +49,19 @@ public class SecondFrame extends JFrame implements ActionListener {
     String[] col;
     Object[][] data;
 
-    public SecondFrame(Customer c){
+    public InvoiceFrame(Customer c){
         super("Invoice");
 
-        //Initialize Customer Class
+        //Initialize Util.Customer Class
         this.c = c;
 
-        //Init Products class
+        //Init Util.Products class
         p = new Products();
         //Initialize JFrame
         setLayout(new FlowLayout());
+
+        //Set up menu
+        setupMenu();
 
         addWidgets();
 
@@ -64,6 +71,7 @@ public class SecondFrame extends JFrame implements ActionListener {
         setVisible(true);
     }
 
+    //Adds all components in the JFrame
     private void addWidgets(){
 
         /*  JPanel VISUALIZED
@@ -145,6 +153,8 @@ public class SecondFrame extends JFrame implements ActionListener {
         date = new JLabel("Date:");
         symptomsLabel = new JLabel("Symptoms:");
         doctorLabel = new JLabel("Attending Doctor: Dr.");
+        deleteLabel = new JLabel("Delete Invoice: ");
+        deleteText = new JTextField(8);
         doctorText = new JTextField(12);
         dateText = new JTextField(8);
         dateText.setText("11/12/2020");
@@ -156,10 +166,12 @@ public class SecondFrame extends JFrame implements ActionListener {
         removeRowsButton.addActionListener(this);
         addToInvoiceButton = new JButton("Add to Invoice");
         addToInvoiceButton.addActionListener(this);
-        nextButton = new JButton("Next");
+        nextButton = new JButton("Export To PDF");
         nextButton.addActionListener(this);
         backButton = new JButton("Back");
         backButton.addActionListener(this);
+        deleteButton = new JButton("Delete");
+        deleteButton.addActionListener(this);
 
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -191,21 +203,29 @@ public class SecondFrame extends JFrame implements ActionListener {
         gbc.gridy = 2;
         gbc.fill = GridBagConstraints.REMAINDER;
         gbc.anchor = GridBagConstraints.LINE_END;
-        leftPanel.add(addToInvoicePanel, gbc);
         addToInvoicePanel.add(addToInvoiceButton);
         leftPanel.add(addToInvoicePanel, gbc);
+
+        ///// Delete Invoice /////
+        gbc.gridy = 3;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        JPanel deletePanel = new JPanel();
+        deletePanel.add(deleteLabel);
+        deletePanel.add(deleteText);
+        deletePanel.add(deleteButton);
+        leftPanel.add(deletePanel, gbc);
 
         /////JSeparator/////
         JSeparator js1 = new JSeparator(JSeparator.HORIZONTAL);
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         gbc.weightx = 0.1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 20, 0, 20);
         leftPanel.add(js1, gbc);
 
         ///// JTEXTAREA /////
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.insets = new Insets(0, 20, 5, 0);
         leftPanel.add(symptomsLabel, gbc);
@@ -215,20 +235,20 @@ public class SecondFrame extends JFrame implements ActionListener {
         JScrollPane textAreaScrollPane = new JScrollPane(symptomsText);
         gbc.insets = new Insets(0, 10, 10, 10);
         symptomsText.setBorder(new JTextField().getBorder());
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         leftPanel.add(textAreaScrollPane, gbc);
 
         /////JSeparator/////
         JSeparator js2 = new JSeparator(JSeparator.HORIZONTAL);
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.weightx = 0.1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 20, 0, 20);
         leftPanel.add(js2, gbc);
 
         /////DOCTOR/////
-        gbc.gridy = 7;
+        gbc.gridy = 8;
         gbc.insets = new Insets(0, 20, 0, 20);
         gbc.fill = GridBagConstraints.NONE;
 
@@ -238,6 +258,8 @@ public class SecondFrame extends JFrame implements ActionListener {
         leftPanel.add(doctorPanel, gbc);
 
     }
+
+    //Builds invoice JTable
     private void buildTable(JPanel leftPanel, GridBagConstraints gbc){
         //Initialize Default Table Data
         model = new DefaultTableModel(){
@@ -254,7 +276,7 @@ public class SecondFrame extends JFrame implements ActionListener {
                 }
             }
 
-            //When a cell is updated, this method ss called
+            //When a cell is updated, this method is called
             @Override
             public void fireTableCellUpdated(int row, int column) {
                 Object data = model.getValueAt(row, column);
@@ -274,19 +296,20 @@ public class SecondFrame extends JFrame implements ActionListener {
 
             }
         };
-        col = new String[]{
+        col = new String[]{ //Column headers
                 "No.",
                 "Description",
                 "Qty",
                 "Price"
         };
-        data = new Object[][]{
+        data = new Object[][]{ //Default products and prices
                 {1, "Consultation", 0, 0.0},
                 {2, "Special Acupuncture Treatment", 0, 0.0},
                 {3, "Medical Machine Therapy", 0, 0.0},
                 {4, "Tapping Treatment", 0, 0.0}
         };
 
+        //Sets the default table with its columns and rows
         model.setDataVector(data, col);
         /////Initialize Table/////
         table = new JTable(model);
@@ -295,14 +318,13 @@ public class SecondFrame extends JFrame implements ActionListener {
         table.setPreferredScrollableViewportSize(table.getMinimumSize());
         table.setFillsViewportHeight(true);
         /////JTable customization/////
-        //Center table contents
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
         renderer.setHorizontalAlignment(SwingConstants.CENTER);
         table.setDefaultRenderer(String.class, renderer);
         table.setDefaultRenderer(Integer.class, renderer);
         table.setDefaultRenderer(Double.class, renderer);
-        //Center table header
         renderer = (DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer(); //Center table headers
+        //Center table header and Contents
         renderer.setHorizontalAlignment(SwingConstants.CENTER);
         //Table resizing
         table.getTableHeader().setResizingAllowed(false); //Do not allow resizing of table
@@ -331,6 +353,7 @@ public class SecondFrame extends JFrame implements ActionListener {
 
     }
 
+    //Builds the Invoice Preview
     private void buildRightPanel(JPanel rightPanel){
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -359,10 +382,11 @@ public class SecondFrame extends JFrame implements ActionListener {
 
     }
 
+    //Sets up JEditorPane
     private void setupPreview(JEditorPane invoicePreviewPane){
         //Get HTML file and show it on JEditorPane
-        File f = new File("src/main/java/preview.html");
-        File edited = new File("src/main/java/preview_temp.html");
+        File f = new File("src/main/java/html/preview_template.html");
+        File edited = new File("src/main/java/html/preview_temp.html");
 
         try {
             edited.createNewFile(); //Creates a new temp file "preview_temp.html"
@@ -384,26 +408,33 @@ public class SecondFrame extends JFrame implements ActionListener {
 
     }
 
-    //This method generates the html code for preview.html. returns the code as a String
+    //This method generates the HTML code for preview_template.html. returns the code as a String
     private String writeToHTMLDoc(File f){
         Document d = null;
-        Element e;
         try {
             d = Jsoup.parse(f, "UTF-8", "");
-            e = d.select("div#container").first().appendElement("div")
-                    .addClass("invoice");
+            Element e = d.select("div#container").first();
             for(Map.Entry<String, LinkedHashMap<String, Double>> entry : c.getAllInvoices().entrySet()) {
                 String date = entry.getKey();
-                e.appendElement("h3").text("Date: " + date);
+                e = d.select("div#container").first()
+                        .appendElement("div").addClass("invoice")
+                        .appendElement("h3").text("Date: " + date);
+
                 for(Map.Entry<String, Double> map : entry.getValue().entrySet()){
                     String productName = map.getKey();
                     Double price = map.getValue();
-                    e.appendElement("p").text("Product: " + productName + " Price: " + price);
+                    e = d.select("div#container").first()
+                            .getElementsByClass("invoice").last()
+                            .appendElement("p").text("Product: " + productName + " Price: " + price);
                 }
+
+                e = d.select("div#container").first()
+                        .getElementsByClass("invoice").last()
+                        .appendElement("hr");
+
             }
 
             e.appendElement("h3").text("Total: " + c.getTotalPrice());
-            System.out.println(d);
         } catch (IOException err) {
             err.printStackTrace();
         }
@@ -411,10 +442,11 @@ public class SecondFrame extends JFrame implements ActionListener {
         return d.toString();
     }
 
+    //This method gets called whenever a button is clicked
     @Override
     public void actionPerformed(ActionEvent e) {
         DefaultTableModel model = (DefaultTableModel)table.getModel();
-        if(e.getActionCommand().equals("Add Row")){ //When + button is clicked
+        if(e.getActionCommand().equals("Add Row")){ //When "Add Row" button is clicked
             model.addRow(new Object[]{ //Add new row
                     p.numCounter,
                     "",
@@ -436,7 +468,7 @@ public class SecondFrame extends JFrame implements ActionListener {
                     Double price = (Double) model.getValueAt(i, 3);
                     invoice.put(desc, price);
                 }
-                //Add invoice to Customer class
+                //Add invoice to Util.Customer class
                 c.addToInvoiceList(dateText.getText(), invoice);
                 System.out.println("Number of invoice(s):"+c.getAllInvoices().size());
                 //Show invoice(s) in preview
@@ -444,25 +476,40 @@ public class SecondFrame extends JFrame implements ActionListener {
                 //Reset inputs
                 resetInputs();
             }
-        } else if(e.getActionCommand().equals("Back")){
-            //If user clicks the Back button, goes back to MainFrame
-            new MainFrame(c.getDate(), c.getBillTo(), c.getDateOfBirth(), c.getName(), c.getGenderIndex(c.getGender()), c.getPassportNum());
-            setVisible(false);
-        } else if(e.getActionCommand().equals("Next")){
-            //If user clicks the Next button, it opens the PDF
-            c.setSymptoms(symptomsText.getText());
-            c.setAttendingDoctor(doctorText.getText());
-            try {
-                c.printInvoice(this);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
+        } else if(e.getActionCommand().equals("Delete")){
+            //User clicks Delete button
+            if(c.deleteInvoice(deleteText.getText())){ //Invoice has successfully been deleted
+                setupPreview(invoicePreviewPane);
+            } else {
+                JOptionPane.showMessageDialog(this, "Please enter a valid date.");
             }
 
+        } else if(e.getActionCommand().equals("Back")){
+            //If user clicks the Back button, goes back to MainFrame
+            new CustomerFrame(c.getDate(), c.getBillTo(), c.getDateOfBirth(), c.getName(), c.getGenderIndex(c.getGender()),
+                    c.getPassportNum(), c.getFileDest());
+            setVisible(false);
+        } else if(e.getActionCommand().equals("Export To PDF")){
+            //If user clicks the Next button, it opens the PDF
+            c.setSymptoms(symptomsText.getText()); //Saves the symptoms text
+            c.setAttendingDoctor(doctorText.getText()); //Saves the doctor text
+            try {
+                c.printInvoice(this);
+                //Starts a new invoice
+                new CustomerFrame();
+                setVisible(false);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Could not Export to PDF. Error: " + ex);
+            }
+
+        } else if(e.getActionCommand().equals("Export To")){
+            //When user clicks on Export To
+            fileDestinationChooser();
         }
     }
 
+    //Validates user input
     private boolean validateInputs(){
         boolean valid = true;
 
@@ -496,6 +543,35 @@ public class SecondFrame extends JFrame implements ActionListener {
         return valid;
     }
 
+    //Sets up "File" Menu
+    private void setupMenu(){
+        //Menu
+        menuBar = new JMenuBar();
+        menu = new JMenu("File");
+        menuItem = new JMenuItem("Export To");
+        menuItem.addActionListener(this);
+        menu.add(menuItem);
+        menuBar.add(menu);
+        setJMenuBar(menuBar);
+    }
+
+    //Sets up FileChooser
+    private void fileDestinationChooser(){
+
+        fileChooser = new JFileChooser();
+        fileChooser.setCurrentDirectory(FileSystemView.getFileSystemView().getDefaultDirectory());
+        fileChooser.setDialogTitle(c.getFileDest());
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            c.setFileDest(fileChooser.getSelectedFile().getPath());
+        }
+
+    }
+
+    //Reset user inputs
     private void resetInputs(){
         //Reset date
         dateText.setText("");
@@ -512,5 +588,7 @@ public class SecondFrame extends JFrame implements ActionListener {
         model.setValueAt(0.0, 2, 3);
         model.setValueAt(0.0, 3, 3);
         model.fireTableDataChanged();
+        //Product counter
+        p.numCounter = 5;
     }
 }

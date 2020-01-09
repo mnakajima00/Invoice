@@ -1,4 +1,4 @@
-# main.App
-An main.App Generator - made with Java
+# Invoice Generator - Dr Jung
+An Invoice Generator desktop application made with Java Swing.
 
 ## Table of Contents
